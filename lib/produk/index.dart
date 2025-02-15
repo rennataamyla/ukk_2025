@@ -27,10 +27,9 @@ class _ProdukTabState extends State<ProdukTab> {
       isLoading = true;
     });
     try {
-      final response = 
-      await Supabase.instance.client
-      .from('produk')
-      .select();
+      final response = await Supabase.instance.client
+          .from('produk')
+          .select();
       setState(() {
         produk = List<Map<String, dynamic>>.from(response);
         isLoading = false;
@@ -43,26 +42,68 @@ class _ProdukTabState extends State<ProdukTab> {
     }
   }
 
-
   Future<void> deleteProduk(int ProdukID) async {
     try {
       await Supabase.instance.client
-      .from('produk')
-      .delete()
-      .eq('ProdukID', ProdukID);
-  
+          .from('produk')
+          .delete()
+          .eq('ProdukID', ProdukID);
+
       fetchProduk(); 
     } catch (e) {
       print('Error deleting produk: $e');
     }
   }
 
+ 
+ Future<void> beliProduk(int ProdukID, int jumlah) async {
+  try {
+    final response = await Supabase.instance.client
+        .from('produk')
+        .select('Stok')
+        .eq('ProdukID', ProdukID)
+        .single();
+
+    final currentStock = response['Stok'] as int;
+    if (currentStock >= jumlah) {
+      final newStock = currentStock - jumlah;
+      await Supabase.instance.client
+          .from('produk')
+          .update({'Stok': newStock})
+          .eq('ProdukID', ProdukID);
+
+      fetchProduk(); 
+      print('Produk berhasil dibeli! Stok baru: $newStock');
+    } else {
+      // Menampilkan AlertDialog jika stok tidak mencukupi
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Stok Tidak Mencukupi'),
+            content: Text('Hanya tersedia $currentStock produk.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Tutup'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  } catch (e) {
+    print('Error membeli produk: $e');
+  }
+}
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Daftar Produk')),
       body: isLoading
-          ? Center(child: CircularProgressIndicator()) 
+          ? Center(child: CircularProgressIndicator())
           : produk.isEmpty
               ? Center(
                   child: Text(
@@ -74,7 +115,7 @@ class _ProdukTabState extends State<ProdukTab> {
                   padding: EdgeInsets.all(8),
                   itemCount: produk.length,
                   itemBuilder: (context, index) {
-                    final product = produk[index]; // Memperbaiki nama variabel 'roduk' menjadi 'product'
+                    final product = produk[index];
                     return InkWell(
                       child: Card(
                         elevation: 4,
@@ -103,11 +144,10 @@ class _ProdukTabState extends State<ProdukTab> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                product['Stok']?.toString() ?? 'Tidak tersedia',
+                                'Stok: ${product['Stok']?.toString() ?? 'Tidak tersedia'}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 14,
                                 ),
-                                textAlign: TextAlign.justify,
                               ),
                               const Divider(),
                               Row(
@@ -116,16 +156,94 @@ class _ProdukTabState extends State<ProdukTab> {
                                   IconButton(
                                     icon: const Icon(Icons.edit, color: Colors.blueAccent),
                                     onPressed: () {
-                                      final ProdukID =
-                                      product['ProdukID'] ?? 0;
+                                      final ProdukID = product['ProdukID'] ?? 0;
                                       if (ProdukID != 0) {
                                         Navigator.push(
                                           context,
-                                          MaterialPageRoute(builder: (context) => editproduk(ProdukID: ProdukID)))
-                                        ),
-                                      };
+                                          MaterialPageRoute(
+                                            builder: (context) => updateproduk(ProdukID: ProdukID),
+                                          ),
+                                        );
+                                      } else {
+                                        print('ID produk tidak valid');
+                                      }
                                     },
-                                  )
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title: const Text('Hapus Produk'),
+                                            content: const Text('Apakah Anda yakin ingin menghapus produk ini?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context),
+                                                child: const Text('Batal'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () {
+                                                  deleteProduk(product['ProdukID']);
+                                                  Navigator.pop(context);
+                                                },
+                                                child: const Text('Hapus'),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.shopping_cart, color: Colors.green),
+                                    onPressed: () {
+                                      final ProdukID = product['ProdukID'] ?? 0;
+                                      if (ProdukID != 0) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            final TextEditingController qtyController = TextEditingController();
+                                            return AlertDialog(
+                                              title: const Text('Beli Produk'),
+                                              content: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text('Masukkan jumlah yang ingin dibeli:'),
+                                                  TextField(
+                                                    controller: qtyController,
+                                                    keyboardType: TextInputType.number,
+                                                    decoration: InputDecoration(hintText: 'Jumlah'),
+                                                  ),
+                                                ],
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context),
+                                                  child: const Text('Batal'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    final jumlah = int.tryParse(qtyController.text) ?? 0;
+                                                    if (jumlah > 0) {
+                                                      beliProduk(ProdukID, jumlah);
+                                                      Navigator.pop(context);
+                                                    } else {
+                                                      print('Jumlah tidak valid');
+                                                    }
+                                                  },
+                                                  child: const Text('Beli'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      } else {
+                                        print('ID produk tidak valid');
+                                      }
+                                    },
+                                  ),
                                 ],
                               ),
                             ],
@@ -135,6 +253,15 @@ class _ProdukTabState extends State<ProdukTab> {
                     );
                   },
                 ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddProduk()),
+          );
+        },
+        child: Icon(Icons.add),
+      ),
     );
   }
 }
