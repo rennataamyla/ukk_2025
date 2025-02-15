@@ -77,27 +77,33 @@ class _loginpageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
-              controller: _usernameController, 
-              decoration: InputDecoration(
-                labelText: 'Username', 
-                border: OutlineInputBorder(), 
-                prefixIcon: Icon(Icons.person, color: Colors.black), 
-                filled: true,
-                fillColor: Colors.white, 
+                controller: _usernameController,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  hintText: 'Enter your username',
+                  prefixIcon: Icon(Icons.person),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                ),
               ),
-            ),
-             SizedBox(height: 16.0), 
-             TextField(
-              controller: _passwordController, 
-              decoration: InputDecoration(
-                labelText: 'Password', 
-                border: OutlineInputBorder(), 
-                prefixIcon: Icon(Icons.lock_person, color: Colors.black), 
-                filled: true,
-                fillColor: Colors.white, 
+              SizedBox(height: 20),
+
+              // Password TextField
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
+                  prefixIcon: Icon(Icons.lock),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                ),
               ),
-              obscureText: true, 
-            ),
               SizedBox(height: 24.0),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
