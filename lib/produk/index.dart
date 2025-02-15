@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ukk_2025/produk/insert.dart'; // Asumsi file ini digunakan untuk menambahkan produk
-import 'package:ukk_2025/produk/update.dart'; // Asumsi file ini digunakan untuk memperbarui produk
+import 'package:ukk_2025/produk/insert.dart'; 
+import 'package:ukk_2025/produk/update.dart'; 
 
 class ProdukTab extends StatefulWidget {
   const ProdukTab({super.key});
@@ -21,7 +21,7 @@ class _ProdukTabState extends State<ProdukTab> {
     fetchProduk();
   }
 
-  // Mengambil produk dari Supabase
+  
   Future<void> fetchProduk() async {
     setState(() {
       isLoading = true;
@@ -75,7 +75,6 @@ class _ProdukTabState extends State<ProdukTab> {
       fetchProduk(); 
       print('Produk berhasil dibeli! Stok baru: $newStock');
     } else {
-      // Menampilkan AlertDialog jika stok tidak mencukupi
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -154,7 +153,7 @@ class _ProdukTabState extends State<ProdukTab> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                                    icon: const Icon(Icons.edit, color: Color.fromARGB(255, 120, 151, 205)),
                                     onPressed: () {
                                       final ProdukID = product['ProdukID'] ?? 0;
                                       if (ProdukID != 0) {
@@ -170,7 +169,7 @@ class _ProdukTabState extends State<ProdukTab> {
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                    icon: const Icon(Icons.delete, color: Color.fromARGB(255, 83, 119, 144)),
                                     onPressed: () {
                                       showDialog(
                                         context: context,
@@ -197,7 +196,7 @@ class _ProdukTabState extends State<ProdukTab> {
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.shopping_cart, color: Colors.green),
+                                    icon: const Icon(Icons.shopping_cart, color: Color.fromARGB(255, 129, 168, 192)),
                                     onPressed: () {
                                       final ProdukID = product['ProdukID'] ?? 0;
                                       if (ProdukID != 0) {
