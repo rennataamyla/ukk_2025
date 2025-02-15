@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ukk_2025/login.dart';
+import 'package:ukk_2025/pelanggan/index.dart';
 import 'package:ukk_2025/produk/index.dart';// Pastikan impor ini mengarah ke file yang benar
 
 
@@ -89,6 +90,7 @@ class _HomepageState extends State<Homepage> {
         body: TabBarView(
           children:[
             ProdukTab(),
+            PelangganTab(),
             
  
           ] 
