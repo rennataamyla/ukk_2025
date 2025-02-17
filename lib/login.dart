@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ukk_2025/homepage.dart';
 import 'package:ukk_2025/main.dart';
-import 'package:ukk_2025/register.dart';
+import 'package:ukk_2025/user/index.dart';
 
 
 
@@ -112,22 +112,7 @@ class _loginpageState extends State<LoginPage> {
               onPressed: _login, 
               child: Text('LOGIN', style: TextStyle(color: Colors.white)), 
             ),
-            SizedBox(height: 24.0,),
-            TextButton(
-              onPressed: (){
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => RegisterPage())
-                );
-              },
-              child: Text(
-                'register here',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold
-                ),
-              ),
-            ),
+           
           ],
         ),
       ),

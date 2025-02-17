@@ -2,57 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ukk_2025/homepage.dart';
 
-  class EditPelanggan extends StatefulWidget {
-    final int PelangganID;
+  class EditPenjualan extends StatefulWidget {
+    final int PenjualanID;
 
-    const EditPelanggan({super.key, required this.PelangganID});
+    const EditPenjualan({super.key, required this.PenjualanID});
 
     @override
-    State<EditPelanggan> createState() => _EditPelangganState();
+    State<EditPenjualan> createState() => _EditPenjualanState();
   }
 
-  class _EditPelangganState extends State<EditPelanggan> {
-    final _nmplg = TextEditingController();
-    final _alamat = TextEditingController();
-    final _notlp = TextEditingController();
+  class _EditPenjualanState extends State<EditPenjualan> {
+    final _tgl = TextEditingController();
+    final _ttl = TextEditingController();
+    final _plgid = TextEditingController();
     final _formKey = GlobalKey<FormState>();
 
     @override
     void initState() {
       super.initState();
-      _loadPelangganData();
+      _loadPenjualanData();
     }
 
     // Fungsi untuk memuat data pelanggan berdasarkan ID
-    Future<void> _loadPelangganData() async {
+    Future<void> _loadPenjualanData() async {
       final data = await Supabase.instance.client
-          .from('Pelanggan')
+          .from('Penjualan')
           .select()
-          .eq('PelangganID', widget.PelangganID)
+          .eq('PenjualanID', widget.PenjualanID)
           .single();
 
       setState(() {
-        _nmplg.text = data['NamaPelanggan'] ?? '';
-        _alamat.text = data['Alamat'] ?? '';
-        _notlp.text = data['NomorTelepon'] ?? '';
+        _tgl.text = data['TanggalPenjualan'] ?? '';
+        _ttl.text = data['TotalHarga']?.toString() ?? '';
+        _plgid.text = data['PelangganID']?.toString() ?? '';
+       
       });
     }
 
-  // EditPelanggan.dart
+  // EditPenjualan.dart
   Future<void> updatePelanggan() async {
     if (_formKey.currentState!.validate()) {
-      // Melakukan update data pelanggan ke database
+
       await Supabase.instance.client.from('Pelanggan').update({
-        'NamaPelanggan': _nmplg.text,
-        'Alamat': _alamat.text,
-        'NomorTelepon': _notlp.text,
-      }).eq('PelangganID', widget.PelangganID);
+        'TanggalPenjualan': _tgl.text,
+        'TotalHarga': _ttl.text,
+        'PelangganID': _plgid.text,
+        
+      }).eq('PenjualanID', widget.PenjualanID);
 
       // Navigasi ke PelangganTab setelah update, dengan menghapus semua halaman sebelumnya dari stack
-      Navigator.pushAndRemoveUntil(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => Homepage()),
-        (route) => false, // Hapus semua halaman sebelumnya
+         // Hapus semua halaman sebelumnya
       );
     }
   }
@@ -63,7 +65,7 @@ import 'package:ukk_2025/homepage.dart';
     Widget build(BuildContext context) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Edit Pelanggan'),
+          title: const Text('Edit Penjualan'),
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -73,9 +75,23 @@ import 'package:ukk_2025/homepage.dart';
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextFormField(
-                  controller: _nmplg,
+                  controller: _tgl,
                   decoration: const InputDecoration(
-                    labelText: 'Nama Pelanggan',
+                    labelText: 'Tanggal Penjualan',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Nama tidak boleh kosong';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _ttl,
+                  decoration: const InputDecoration(
+                    labelText: 'Total Harga',
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
@@ -87,9 +103,9 @@ import 'package:ukk_2025/homepage.dart';
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _alamat,
+                  controller: _plgid,
                   decoration: const InputDecoration(
-                    labelText: 'Alamat',
+                    labelText: 'PelangganID',
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
@@ -100,19 +116,7 @@ import 'package:ukk_2025/homepage.dart';
                   },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _notlp,
-                  decoration: const InputDecoration(
-                    labelText: 'Nomor Telepon',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Nomor telepon tidak boleh kosong';
-                    }
-                    return null;
-                  },
-                ),
+                
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: updatePelanggan,
