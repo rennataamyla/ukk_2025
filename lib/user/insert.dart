@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
-import 'package:ukk_2025/user/index.dart';  // Tambahkan ini untuk FilteringTextInputFormatter
+import 'package:ukk_2025/user/index.dart';  // Pastikan ini mengarah pada file yang tepat
 
 class InsertUser extends StatefulWidget {
   const InsertUser({super.key});
@@ -16,30 +16,63 @@ class _InsertUserState extends State<InsertUser> {
   final pass = TextEditingController();
   final supabase = Supabase.instance.client;
 
-  Future<void> simpanUser() async {
-    if (!formKey.currentState!.validate()) {
-      final simpanData = await supabase
+  // Function to check if user already exists
+  Future<bool> isUserExists(String username) async {
+    try {
+      final response = await supabase
           .from('user')
           .select('Username')
-          .eq('Username', user.text)
+          .eq('Username', username)
           .maybeSingle();
 
-      if (simpanData != null) {
-        // Untuk menampilkan pesan error jika data sudah ada
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak boleh ada data ganda!')),
-        );
-        return;
-      }
+      return response != null;
+    } catch (e) {
+      print('Error checking user existence: $e');
+      return false;
+    }
+  }
 
-      // Untuk menyimpan data jika data belum ada
-      await supabase.from('user').insert({
-        'Username': user.text,
-        'Password': pass.text,
+  Future<void> simpanUser() async {
+    if (!formKey.currentState!.validate()) {
+      return;  // Jika form tidak valid, tidak lanjutkan
+    }
+
+    final username = user.text;
+    final password = pass.text;
+
+    // Cek apakah username sudah ada
+    bool userExists = await isUserExists(username);
+
+    if (userExists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username sudah terdaftar!')),
+      );
+      return;
+    }
+
+    try {
+      // Simpan data pengguna jika username belum terdaftar
+      final response = await supabase.from('user').insert({
+        'Username': username,
+        'Password': password,
       });
 
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => const UserTab()));
+      if (response.error == null) {
+        // Jika berhasil
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const UserTab()));
+      } else {
+        // Jika ada error
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menyimpan data pengguna!')),
+        );
+      }
+    } catch (e) {
+      // Menangani jika terjadi kesalahan saat query Supabase
+      print('Error inserting user: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Terjadi kesalahan, coba lagi!')),
+      );
     }
   }
 
@@ -49,8 +82,8 @@ class _InsertUserState extends State<InsertUser> {
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       inputFormatters: isNumber
-          ? [FilteringTextInputFormatter.digitsOnly]  // Pastikan ini sudah benar
-          : [], // Jika bukan angka, maka tidak ada format input khusus
+          ? [FilteringTextInputFormatter.digitsOnly] // Pastikan hanya angka
+          : [], // Jika bukan angka, tidak ada format khusus
       decoration:
           InputDecoration(labelText: label, border: const OutlineInputBorder()),
       validator: (value) =>

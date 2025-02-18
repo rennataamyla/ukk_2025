@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ukk_2025/penjualan/index.dart';
+import 'package:ukk_2025/homepage.dart';
+
 import 'package:ukk_2025/produk/insert.dart';
 import 'package:ukk_2025/produk/update.dart';
 
@@ -290,6 +291,149 @@ class _ProdukTabState extends State<ProdukTab> {
           );
         },
         child: Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class ProdukDetailPage extends StatefulWidget {
+  final Map<String, dynamic> produk;
+
+  const ProdukDetailPage({Key? key, required this.produk}) : super(key: key);
+
+  @override
+  _ProdukDetailPageState createState() => _ProdukDetailPageState();
+}
+
+class _ProdukDetailPageState extends State<ProdukDetailPage> {
+   int jumlahPesanan = 0;
+    int totalHarga = 0;
+    int stokakhir = 0;
+    int stokawal = 0;
+
+    void updateJumlahPesanan(int harga, int delta) {
+    setState(() {
+      stokakhir = stokawal - delta;
+      if (stokakhir < 0) stokakhir = 0; 
+      jumlahPesanan += delta;
+      if (jumlahPesanan < 0) jumlahPesanan = 0; // Tidak boleh negatif
+      totalHarga = jumlahPesanan * harga;
+      if (totalHarga < 0) totalHarga = 0; // Tidak boleh negatif
+    });
+  }
+  
+Future<void> insertDetailPenjualan(int ProdukID, int PenjualanID, int jumlahPesanan, int totalHarga) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      final response = await supabase.from('detailpenjualan').insert({
+        'ProdukID': ProdukID,
+        'PenjualanID': PenjualanID,
+        'JumlahProduk': jumlahPesanan,
+        'Subtotal': totalHarga,
+      });
+
+      if (response.error == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pesanan berhasil disimpan!')),
+        );
+      } else {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Homepage()));
+      }
+    } catch (e) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Homepage()));
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final produk = widget.produk;
+    final harga = produk['Harga'] ?? 0;
+    final ProdukID = produk['ProdukID'] ?? 0;
+    final PenjualanID = 1; // Contoh ID Penjualan (harus diganti sesuai logika Anda)
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.produk['NamaProduk'] ?? 'Detail Produk'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.produk['NamaProduk'] ?? 'Nama Tidak Tersedia',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Harga: ${widget.produk['Harga'] ?? 'Tidak Tersedia'}',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Stok: ${widget.produk['Stok'] ?? 'Tidak Tersedia'}',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 30),
+            Row(
+              children: [
+                      IconButton(
+                        onPressed: () {
+                          updateJumlahPesanan(harga, -1);
+                        },
+                        icon: const Icon(Icons.remove),
+                      ),
+                      Text(
+                        '$jumlahPesanan',
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          updateJumlahPesanan(harga, 1);
+                        },
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    if (jumlahPesanan > 0) {
+                      await insertDetailPenjualan(ProdukID, PenjualanID, jumlahPesanan, totalHarga);
+                    }
+                  },
+                  icon: const Icon(Icons.shopping_bag),
+                  label: const Text('Beli Sekarang'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[200],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AddProdukPage extends StatelessWidget {
+  const AddProdukPage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tambah Produk Baru'),
+      ),
+      body: const Center(
+        child: Text('Form Tambah Produk'),
       ),
     );
   }

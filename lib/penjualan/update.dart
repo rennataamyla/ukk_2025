@@ -42,7 +42,7 @@ import 'package:ukk_2025/homepage.dart';
   // EditPenjualan.dart
   Future<void> updatePelanggan() async {
     if (_formKey.currentState!.validate()) {
-
+      // Melakukan update data pelanggan ke database
       await Supabase.instance.client.from('Pelanggan').update({
         'TanggalPenjualan': _tgl.text,
         'TotalHarga': _ttl.text,

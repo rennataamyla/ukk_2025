@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:ukk_2025/pelanggan/insert.dart';
-import 'package:ukk_2025/pelanggan/update.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ukk_2025/penjualan/insert.dart';
 import 'package:ukk_2025/penjualan/update.dart';
 
-class penjualanTab extends StatefulWidget {
-  const penjualanTab({super.key});
+class PenjualanTab extends StatefulWidget {
+  const PenjualanTab({super.key});
 
   @override
-  State<penjualanTab> createState() => _penjualanTabState();
+  State<PenjualanTab> createState() => _PenjualanTabState();
 }
 
-class _penjualanTabState extends State<penjualanTab> {
-  List<Map<String, dynamic>> Penjualan = []; // Menyimpan data pelanggan
+class _PenjualanTabState extends State<PenjualanTab> {
+  List<Map<String, dynamic>> penjualan = []; // Data penjualan
+  List<Map<String, dynamic>> penjualanFiltered = []; // Data yang difilter berdasarkan pencarian
   bool isLoading = true; // Status loading data
+  String searchQuery = ""; // Menyimpan query pencarian
 
   @override
   void initState() {
     super.initState();
-    fetchPenjualan(); // Memanggil fungsi untuk mengambil data pelanggan saat inisialisasi
+    fetchPenjualan(); // Memanggil fungsi untuk mengambil data saat pertama kali dijalankan
   }
 
-  // Fungsi untuk mengambil data pelanggan dari Supabase
+  // Fungsi untuk mengambil data penjualan dari Supabase
   Future<void> fetchPenjualan() async {
     setState(() {
       isLoading = true; // Mengatur status loading menjadi true
@@ -30,19 +30,20 @@ class _penjualanTabState extends State<penjualanTab> {
     try {
       final response = await Supabase.instance.client.from('Penjualan').select();
       setState(() {
-        Penjualan = List<Map<String, dynamic>>.from(response); // Menyimpan data ke dalam list
+        penjualan = List<Map<String, dynamic>>.from(response); // Menyimpan data ke dalam list
+        penjualanFiltered = penjualan; // Setel data yang difilter ke semua data awal
         isLoading = false; // Status loading selesai
       });
     } catch (e) {
-      print('Error fetching pelanggan: $e'); // Log error jika ada masalah
+      print('Error fetching penjualan: $e'); // Log error jika ada masalah
       setState(() {
         isLoading = false; // Tetap menonaktifkan status loading jika terjadi error
       });
     }
   }
 
-  // Fungsi untuk menghapus data pelanggan berdasarkan ID
-  Future<void> deletePelanggan(int id) async {
+  // Fungsi untuk menghapus penjualan berdasarkan ID
+  Future<void> deletePenjualan(int id) async {
     try {
       await Supabase.instance.client.from('Penjualan').delete().eq('PenjualanID', id);
       fetchPenjualan(); // Memperbarui data setelah penghapusan
@@ -51,119 +52,156 @@ class _penjualanTabState extends State<penjualanTab> {
     }
   }
 
+  // Fungsi untuk mencari penjualan berdasarkan query pencarian
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Penjualan.isEmpty // Jika data kosong
-          ? Center(
-              child: Text(
-                'Tidak ada penjualan', // Tampilkan teks ini
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      appBar: AppBar(
+        title: Text("Penjualan"),
+      ),
+      body: Column(
+        children: [
+          // Pencarian
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: (query) {
+                (query); // Memanggil fungsi pencarian saat input berubah
+              },
+              decoration: InputDecoration(
+                labelText: 'Search',
+                prefixIcon: Icon(Icons.search),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
+                ),
               ),
-            )
-          : ListView.builder( // Menampilkan data dalam bentuk grid
-              padding: EdgeInsets.all(8), // Padding keseluruhan
-              itemCount: Penjualan.length, // Jumlah item
-              itemBuilder: (context, index) {
-                final jual = Penjualan[index]; // Data pelanggan per item
-                return Card(
-                  elevation: 4, // Elevasi bayangan kartu
-                  margin: EdgeInsets.symmetric(vertical: 8), // Margin antar kartu
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)), // Radius sudut kartu
-                  child: Padding(
-                    padding: EdgeInsets.all(12), // Padding dalam kartu
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, // Posisi konten
-                      children: [
-                        // Menampilkan nama pelanggan
-                        Text(
-                          jual['TanggalPenjualan']?.toString() ?? 'tidak tersedia',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20,
-                          ),
-                        ),
-                        SizedBox(height: 4), // Jarak vertikal
-                        // Menampilkan alamat pelanggan
-                        Text(
-                          jual['TotalHarga']?.toString() ?? 'Tidak tersedia',
-                          style: TextStyle(
-                            fontStyle: FontStyle.italic, fontSize: 16, color: Colors.grey,
-                          ),
-                        ),
-                        SizedBox(height: 8), // Jarak vertikal
-                        // Menampilkan nomor telepon pelanggan
-                        Text(
-                          jual['PelangganID']?.toString() ?? 'Tidak tersedia',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14,
-                          ),
-                          textAlign: TextAlign.justify,
-                        ),
-                        const Divider(), // Garis pemisah
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end, // Posisi tombol
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                              onPressed: () {
-                                final PenjualanID = jual['PenjualanID'] ?? 0; // Pastikan ini sesuai dengan kolom di database
-                                if (PenjualanID != 0) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => EditPenjualan(PenjualanID: PenjualanID)
+            ),
+          ),
+          // Menampilkan daftar penjualan atau pesan jika tidak ada data
+          penjualanFiltered.isEmpty
+              ? Center(
+                  child: Text(
+                    'Tidak ada penjualan', // Menampilkan pesan jika tidak ada data
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                )
+              : Expanded(
+                  child: isLoading
+                      ? Center(child: CircularProgressIndicator()) // Menampilkan indikator loading
+                      : ListView.builder(
+                          padding: EdgeInsets.all(8),
+                          itemCount: penjualanFiltered.length,
+                          itemBuilder: (context, index) {
+                            final jual = penjualanFiltered[index]; // Data penjualan per item
+                            return Card(
+                              elevation: 4,
+                              margin: EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      jual['TanggalPenjualan']?.toString() ?? 'tidak tersedia',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20,
+                                      ),
                                     ),
-                                  );
-                                } else {
-                                  print('ID pelanggan tidak valid'); // Log jika ID invalid
-                                }
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.redAccent),
-                              onPressed: () {
-                                // Konfirmasi sebelum menghapus
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      title: const Text('Hapus Pelanggan'),
-                                      content: const Text('Apakah Anda yakin ingin menghapus pelanggan ini?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text('Batal'),
-                                        ),
-                                        TextButton(
+                                    SizedBox(height: 4),
+                                    Text(
+                                      jual['TotalHarga']?.toString() ?? 'Tidak tersedia',
+                                      style: TextStyle(
+                                        fontStyle: FontStyle.italic,
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      jual['PelangganID']?.toString() ?? 'Tidak tersedia',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      textAlign: TextAlign.justify,
+                                    ),
+                                    const Divider(),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit, color: Colors.blueAccent),
                                           onPressed: () {
-                                            deletePelanggan(jual['PenjualanID']); // Panggil fungsi hapus
-                                            Navigator.pop(context); // Tutup dialog
+                                            final PenjualanID = jual['PenjualanID'] ?? 0;
+                                            if (PenjualanID != 0) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => EditPenjualan(PenjualanID: PenjualanID),
+                                                ),
+                                              );
+                                            } else {
+                                              print('ID penjualan tidak valid');
+                                            }
                                           },
-                                          child: const Text('Hapus'),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: const Text('Hapus Penjualan'),
+                                                  content: const Text('Apakah Anda yakin ingin menghapus penjualan ini?'),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () => Navigator.pop(context),
+                                                      child: const Text('Batal'),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        deletePenjualan(jual['PenjualanID']);
+                                                        Navigator.pop(context); // Tutup dialog
+                                                      },
+                                                      child: const Text('Hapus'),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          },
                                         ),
                                       ],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => AddPenjualan()), // Navigasi ke halaman tambah pelanggan
+            MaterialPageRoute(builder: (context) => AddPenjualan()), // Navigasi ke halaman tambah penjualan
           );
         },
-        child: Icon(Icons.add), // Ikon tombol tambah
+        child: Icon(Icons.add),
       ),
     );
   }

@@ -14,13 +14,12 @@ class _PelangganTabState extends State<PelangganTab> {
   List<Map<String, dynamic>> Pelanggan = []; // Menyimpan data pelanggan
   List<Map<String, dynamic>> filteredPelanggan = []; // Menyimpan data pelanggan yang sudah difilter
   bool isLoading = true; // Status loading data
-  final TextEditingController _searchController = TextEditingController(); // Kontrol pencarian
+  String searchQuery = ""; // Kontrol pencarian
 
   @override
   void initState() {
     super.initState();
     fetchPelanggan();
-    _searchController.addListener(_onSearchChanged); // Memanggil fungsi untuk mengambil data pelanggan saat inisialisasi
   }
 
   // Fungsi untuk mengambil data pelanggan dari Supabase
@@ -44,12 +43,14 @@ class _PelangganTabState extends State<PelangganTab> {
   }
 
   // Fungsi untuk menyaring data pelanggan berdasarkan pencarian
-  void _onSearchChanged() {
+  void searchPelanggan(String query) {
     setState(() {
+      searchQuery = query;
+      // Pencarian dilakukan berdasarkan NamaPelanggan
       filteredPelanggan = Pelanggan.where((pelanggan) {
-        final name = pelanggan['NamaPelanggan'].toString().toLowerCase();
-        final searchQuery = _searchController.text.toLowerCase();
-        return name.contains(searchQuery);
+        return pelanggan['NamaPelanggan']
+            .toLowerCase()
+            .contains(query.toLowerCase()); // Pencarian case-insensitive
       }).toList();
     });
   }
@@ -71,18 +72,21 @@ class _PelangganTabState extends State<PelangganTab> {
         title: const Text('Daftar Pelanggan'),
         actions: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(16.0),
             child: TextField(
-              controller: _searchController,
+              onChanged: (query) {
+                searchPelanggan(query); // Fungsi pencarian saat input berubah
+              },
               decoration: InputDecoration(
-                labelText: 'Cari Pelanggan',
+                labelText: 'Search',
                 prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide(color: Colors.blue, width: 2),
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
                 ),
               ),
             ),
@@ -91,10 +95,10 @@ class _PelangganTabState extends State<PelangganTab> {
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator()) // Menampilkan indikator loading saat data sedang dimuat
-          : Pelanggan.isEmpty
+          : filteredPelanggan.isEmpty
               ? Center(
                   child: Text(
-                    'Tidak ada pelanggan',
+                    'Tidak ada pelanggan yang sesuai dengan pencarian',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 )
@@ -107,7 +111,7 @@ class _PelangganTabState extends State<PelangganTab> {
                       elevation: 6, // Bayangan yang lebih tajam
                       margin: EdgeInsets.symmetric(vertical: 10), // Margin antar kartu
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15)), // Sudut yang lebih halus
+                        borderRadius: BorderRadius.circular(15)), // Sudut yang lebih halus
                       child: Padding(
                         padding: EdgeInsets.all(12), // Padding dalam kartu
                         child: Column(
@@ -137,6 +141,16 @@ class _PelangganTabState extends State<PelangganTab> {
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                                 color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 8), // Jarak vertikal
+                            // Menambahkan ID Pelanggan
+                            Text(
+                              'ID Pelanggan: ${pelanggan['PelangganID'] ?? 'Tidak tersedia'}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                                color: Colors.black,
                               ),
                             ),
                             const Divider(),

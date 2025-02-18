@@ -1,11 +1,14 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ukk_2025/detailpenjualan/index.dart';
 import 'package:ukk_2025/login.dart';
 import 'package:ukk_2025/pelanggan/index.dart';
 import 'package:ukk_2025/penjualan/index.dart';
 import 'package:ukk_2025/produk/index.dart';
 import 'package:ukk_2025/user/index.dart';
-import 'package:ukk_2025/user/insert.dart'; // Pastikan impor ini mengarah ke file yang benar
+
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -41,7 +44,7 @@ class _HomepageState extends State<Homepage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor:  Color.fromARGB(255, 133, 167, 206),
-        title: const Text('HomePage'),
+        title: const Text('MIE IBLIES'),
       ),
       drawer: Drawer(
         backgroundColor: Colors.blue[100],
@@ -102,8 +105,9 @@ class _HomepageState extends State<Homepage> {
         index: _selectedIndex, // Mengatur tampilan berdasarkan index yang dipilih
         children: const [
           ProdukTab(),
-          penjualanTab(),
+          PenjualanTab(),
           PelangganTab(),
+          DetailPenjualanTab(),
          
         ],
       ),

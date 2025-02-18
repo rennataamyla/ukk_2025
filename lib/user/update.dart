@@ -1,122 +1,175 @@
 import 'package:flutter/material.dart';
-import 'package:ukk_2025/homepage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ukk_2025/penjualan/insert.dart'; // Pastikan AddPenjualan diimpor
 
-class UpdateUser extends StatefulWidget {
-  final String userID;  // Terima UserID sebagai parameter konstruktor
-
-  const UpdateUser({super.key, required this.userID});
+class PenjualanTab extends StatefulWidget {
+  const PenjualanTab({super.key});
 
   @override
-  State<UpdateUser> createState() => _UpdateUserState();
+  State<PenjualanTab> createState() => _PenjualanTabState();
 }
 
-class _UpdateUserState extends State<UpdateUser> {
-  final formKey = GlobalKey<FormState>();
-  final user = TextEditingController();
-  final pass = TextEditingController();
-  final supabase = Supabase.instance.client;
+class _PenjualanTabState extends State<PenjualanTab> {
+  List<Map<String, dynamic>> penjualan = [];
+  List<Map<String, dynamic>> penjualanFiltered = []; // Untuk menyimpan hasil pencarian
+
+  bool isLoading = true;
+  String searchQuery = "";
 
   @override
   void initState() {
     super.initState();
-    dataUser();
+    fetchPenjualan();
   }
 
+  // Fungsi untuk mengambil data penjualan dari Supabase
+  Future<void> fetchPenjualan() async {
+    setState(() {
+      isLoading = true; // Menetapkan status loading menjadi true saat mengambil data
+    });
 
-  Future<void> dataUser() async {
     try {
-      final data = await supabase
-          .from('user')  
-          .select()
-          .eq('UserID', widget.userID)  
-          .single();
-
-      setState(() {
-        user.text = data['Username'] ?? ''; 
-        pass.text = data['Password'] ?? '';  
-      });
+      final response = await Supabase.instance.client.from('Penjualan').select();
+      if (response == null) {
+        setState(() {
+          penjualan = List<Map<String, dynamic>>.from(response);
+          penjualanFiltered = penjualan;
+          isLoading = false; // Menetapkan status loading menjadi false setelah data berhasil diambil
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        // Menangani error jika ada masalah
+        print('Error fetching penjualan: ${response}');
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error mengambil data: $e')),
-      );
+      setState(() {
+        isLoading = false; // Tetap menonaktifkan status loading jika terjadi error
+      });
+      print('Error fetching penjualan: $e'); // Mencetak error yang terjadi
     }
   }
 
-  
-  Future<void> updatePelanggan() async {
-    if (formKey.currentState!.validate()) {
-      try {
-        final response = await supabase.from('user').update({
-          'Username': user.text,
-          'Password': pass.text,
-        }).eq('UserID', widget.userID); 
+  // Fungsi untuk mencari penjualan berdasarkan kueri
+  void searchPenjualan(String query) {
+    setState(() {
+      searchQuery = query;
+      penjualanFiltered = penjualan.where((jual) {
+        return jual['pelanggan']['NamaPelanggan'].toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
+  }
 
-        if (response.error == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Data berhasil diperbarui!')),
-          );
-
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const Homepage()),
-            (route) => false,
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${response.error!.message}')),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+  // Fungsi untuk menghapus penjualan berdasarkan ID
+  Future<void> deletePenjualan(int id) async {
+    try {
+      final response = await Supabase.instance.client.from('Penjualan').delete().eq('PenjualanID', id);
+      if (response.error == null) {
+        // Segarkan daftar setelah penghapusan
+        fetchPenjualan();
+      } else {
+        print('Error deleting penjualan: ${response.error!.message}');
       }
+    } catch (e) {
+      print('Error deleting penjualan: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Update Pengguna'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: formKey, 
-          child: Column(
-            children: [
-              TextFormField(
-                controller: user,
-                decoration: const InputDecoration(labelText: 'Username'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Username tidak boleh kosong';
-                  }
-                  return null;
-                },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: (query) {
+                searchPenjualan(query);
+              },
+              decoration: InputDecoration(
+                labelText: 'Search',
+                prefixIcon: Icon(Icons.search),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
+                ),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: pass,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Password tidak boleh kosong';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: updatePelanggan,
-                child: const Text('Update'),
-              ),
-            ],
+            ),
           ),
+          // ListView untuk menampilkan penjualan yang sudah difilter
+          Expanded(
+            child: isLoading
+                ? Center(child: CircularProgressIndicator()) // Menampilkan indikator loading
+                : ListView.builder(
+                    itemCount: penjualanFiltered.length,
+                    itemBuilder: (context, index) {
+                      final item = penjualanFiltered[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.brown.withOpacity(0.2),
+                                blurRadius: 8.0,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            contentPadding: EdgeInsets.all(16.0),
+                            title: Text(
+                              item['pelanggan']['NamaPelanggan'],
+                              style: TextStyle(
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Total harga: ${item['TotalHarga']}\nTanggal: ${item['TanggalPenjualan']}',
+                              style: TextStyle(
+                                fontSize: 14.0,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                // Menghapus penjualan
+                                deletePenjualan(item['PenjualanID']);
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          var result = await Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => AddPenjualan()), // Navigasi ke AddPenjualan
+          );
+
+          if (result == true) {
+            fetchPenjualan(); // Segarkan data jika penjualan baru ditambahkan
+          }
+        },
+        child: Icon(
+          Icons.add,
+          color: Colors.white,
         ),
+        backgroundColor: Colors.brown[600],
       ),
     );
   }
