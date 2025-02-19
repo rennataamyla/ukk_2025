@@ -306,52 +306,97 @@ class ProdukDetailPage extends StatefulWidget {
 }
 
 class _ProdukDetailPageState extends State<ProdukDetailPage> {
-   int jumlahPesanan = 0;
-    int totalHarga = 0;
-    int stokakhir = 0;
-    int stokawal = 0;
+  int jumlahPesanan = 0;
+  int totalHarga = 0;
+  int stokakhir = 0;
+  int stokawal = 0;
 
-    void updateJumlahPesanan(int harga, int delta) {
+  // Update jumlah pesanan dan stok produk
+  void updateJumlahPesanan(int harga, int delta) {
     setState(() {
       stokakhir = stokawal - delta;
-      if (stokakhir < 0) stokakhir = 0; 
+      if (stokakhir < 0) stokakhir = 0;
       jumlahPesanan += delta;
       if (jumlahPesanan < 0) jumlahPesanan = 0; // Tidak boleh negatif
       totalHarga = jumlahPesanan * harga;
       if (totalHarga < 0) totalHarga = 0; // Tidak boleh negatif
     });
   }
-  
-Future<void> insertDetailPenjualan(int ProdukID, int PenjualanID, int jumlahPesanan, int totalHarga) async {
+
+  // Fungsi untuk membuat entri penjualan di tabel 'penjualan'
+  Future<int?> createPenjualan(int PelangganID, int totalHarga) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      final response = await supabase.from('penjualan').insert({
+        'PelangganID': PelangganID,
+        'TotalHarga': totalHarga,
+        'TanggalPenjualan': DateTime.now().toIso8601String(),
+      }).select().single();
+
+      if (response == null) {
+        return response['PenjualanID'];  // Mengembalikan ID penjualan yang baru
+      } else {
+        print("Error creating Penjualan: ${response}");
+        return null;
+      }
+    } catch (e) {
+      print("Error creating Penjualan: $e");
+      return null;
+    }
+  }
+
+  // Fungsi untuk memasukkan detail produk ke dalam tabel 'detailpenjualan'
+  Future<void> insertDetailPenjualan(int produkID, int penjualanID, int jumlahPesanan, int totalHarga) async {
     final supabase = Supabase.instance.client;
 
     try {
       final response = await supabase.from('detailpenjualan').insert({
-        'ProdukID': ProdukID,
-        'PenjualanID': PenjualanID,
+        'ProdukID': produkID,
+        'PenjualanID': penjualanID,
         'JumlahProduk': jumlahPesanan,
         'Subtotal': totalHarga,
-      });
+      }).select().single();
 
-      if (response.error == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pesanan berhasil disimpan!')),
-        );
+      if (response == null) {
+        print("Detail Penjualan berhasil dimasukkan!");
       } else {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Homepage()));
+        print("Error inserting detailpenjualan: ${response}");
       }
     } catch (e) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Homepage()));
+      print("Error inserting detailpenjualan: $e");
     }
   }
 
+  // Fungsi yang menangani proses pembelian
+  Future<void> handleBeliSekarang() async {
+    final produk = widget.produk;
+    final harga = produk['Harga'] ?? 0;
+    final ProdukID = produk['ProdukID'] ?? 0;
+    final PelangganID = 1; // Ganti dengan ID pelanggan yang sedang login
+
+    // Membuat Penjualan terlebih dahulu
+    final penjualanID = await createPenjualan(PelangganID, totalHarga);
+    
+    if (penjualanID != null && penjualanID > 0) {
+      // Jika penjualan berhasil dibuat, masukkan detailpenjualan
+      await insertDetailPenjualan(ProdukID, penjualanID, jumlahPesanan, totalHarga);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pesanan berhasil disimpan!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membuat penjualan.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final produk = widget.produk;
     final harga = produk['Harga'] ?? 0;
     final ProdukID = produk['ProdukID'] ?? 0;
-    final PenjualanID = 1; // Contoh ID Penjualan (harus diganti sesuai logika Anda)
 
     return Scaffold(
       appBar: AppBar(
@@ -379,35 +424,30 @@ Future<void> insertDetailPenjualan(int ProdukID, int PenjualanID, int jumlahPesa
             const SizedBox(height: 30),
             Row(
               children: [
-                      IconButton(
-                        onPressed: () {
-                          updateJumlahPesanan(harga, -1);
-                        },
-                        icon: const Icon(Icons.remove),
-                      ),
-                      Text(
-                        '$jumlahPesanan',
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          updateJumlahPesanan(harga, 1);
-                        },
-                        icon: const Icon(Icons.add),
-                      ),
-                    ],
+                IconButton(
+                  onPressed: () {
+                    updateJumlahPesanan(harga, -1);
+                  },
+                  icon: const Icon(Icons.remove),
+                ),
+                Text(
+                  '$jumlahPesanan',
+                  style: const TextStyle(fontSize: 20),
+                ),
+                IconButton(
+                  onPressed: () {
+                    updateJumlahPesanan(harga, 1);
+                  },
+                  icon: const Icon(Icons.add),
+                ),
+              ],
             ),
             const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                
                 ElevatedButton.icon(
-                  onPressed: () async {
-                    if (jumlahPesanan > 0) {
-                      await insertDetailPenjualan(ProdukID, PenjualanID, jumlahPesanan, totalHarga);
-                    }
-                  },
+                  onPressed: handleBeliSekarang,
                   icon: const Icon(Icons.shopping_bag),
                   label: const Text('Beli Sekarang'),
                   style: ElevatedButton.styleFrom(
@@ -418,22 +458,6 @@ Future<void> insertDetailPenjualan(int ProdukID, int PenjualanID, int jumlahPesa
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class AddProdukPage extends StatelessWidget {
-  const AddProdukPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tambah Produk Baru'),
-      ),
-      body: const Center(
-        child: Text('Form Tambah Produk'),
       ),
     );
   }

@@ -1,4 +1,3 @@
-// ignore_for_file: unused_element
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +7,7 @@ import 'package:ukk_2025/pelanggan/index.dart';
 import 'package:ukk_2025/penjualan/index.dart';
 import 'package:ukk_2025/produk/index.dart';
 import 'package:ukk_2025/user/index.dart';
+
 
 
 class Homepage extends StatefulWidget {
@@ -108,6 +108,7 @@ class _HomepageState extends State<Homepage> {
           PenjualanTab(),
           PelangganTab(),
           DetailPenjualanTab(),
+          
          
         ],
       ),

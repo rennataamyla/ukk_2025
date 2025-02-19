@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ukk_2025/homepage.dart';  // Ganti dengan halaman tujuan setelah registrasi
+import 'package:ukk_2025/homepage.dart';
+import 'package:ukk_2025/main.dart';
+import 'package:ukk_2025/user/insert.dart';  // Ganti dengan halaman tujuan setelah registrasi
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Pastikan binding sudah diinisialisasi sebelum menjalankan kode async
+  await Supabase.initialize( // Inisialisasi Supabase dengan URL dan kunci anon
+    url: 'https://njefwoyeuwuyehoksium.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  );
+  runApp(MyApp()); // Menjalankan aplikasi utama
+}
 
 class UserTab extends StatefulWidget {
   const UserTab({super.key});
@@ -10,19 +22,38 @@ class UserTab extends StatefulWidget {
 }
 
 class _UserTabState extends State<UserTab> {
-  final _formKey = GlobalKey<FormState>(); 
-  final TextEditingController _emailController = TextEditingController(); 
-  final TextEditingController _passwordController = TextEditingController(); 
-  final TextEditingController _confirmPasswordController = TextEditingController(); 
-  bool _isLoading = false; 
+ final _formKey = GlobalKey<FormState>(); // Kunci untuk validasi formulir
+  final TextEditingController _emailController = TextEditingController(); // Controller untuk input email
+  final TextEditingController _passwordController = TextEditingController(); // Controller untuk input password
+  final TextEditingController _confirmPasswordController = TextEditingController(); // Controller untuk konfirmasi password
+ // Controller untuk input role
+  bool _isLoading = false; // Variabel untuk menampilkan indikator loading
 
+  // Fungsi untuk registrasi pengguna
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_formKey.currentState!.validate()) { // Validasi input form
+      final String username = _emailController.text;
+      final String password = _confirmPasswordController.text;
+    
 
-    final String email = _emailController.text.trim();
-    final String password = _passwordController.text.trim();
+      // Menyimpan data pengguna ke dalam tabel Supabase (seharusnya tidak menyimpan password secara langsung)
+      final user = await Supabase.instance.client.from('user').insert({
+        'username': username,
+        'password': password, // ⚠️ Harus dienkripsi sebelum disimpan!
+      
+      });
 
-    if (password != _confirmPasswordController.text.trim()) {
+      // Navigasi ke Homepage jika berhasil
+      if (user == null || user.isEmpty) {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => InsertUser()));
+      } else {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => InsertUser()));
+      }
+    }
+
+    if (!_formKey.currentState!.validate()) return; // Jika form tidak valid, hentikan proses
+
+    if (_passwordController.text != _confirmPasswordController.text) { // Periksa kesesuaian password
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password dan konfirmasi password tidak cocok')),
       );
@@ -30,47 +61,31 @@ class _UserTabState extends State<UserTab> {
     }
 
     setState(() {
-      _isLoading = true;
+      _isLoading = true; // Menampilkan indikator loading
     });
 
     try {
+      // Mendaftarkan pengguna menggunakan Supabase Auth
       final response = await Supabase.instance.client.auth.signUp(
-        email: email,
-        password: password,
+        email: _emailController.text,
+        password: _passwordController.text,
       );
 
-      if (response.user == null) {
-        throw 'Registrasi gagal, coba lagi!';
+      if (response.user != null) { // Jika registrasi berhasil
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registrasi berhasil! Silakan verifikasi email Anda.')),
+        );
+        Navigator.pop(context); // Kembali ke halaman sebelumnya
+      } else if (response.user != null) {
+        throw response.user!; // ⚠️ Logika ini tidak diperlukan, mungkin typo
       }
-
-      // Masukkan data user ke database
-      final userInsertResponse = await Supabase.instance.client.from('user').insert([
-        {
-          'email': email, 
-          'user_id': response.user!.id, // Simpan user ID dari Supabase
-        }
-      ]);
-
-      if (userInsertResponse.error != null) {
-        throw userInsertResponse.error!.message;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registrasi berhasil! Silakan verifikasi email Anda.')),
-      );
-
-      // **Navigasi ke halaman berikutnya setelah registrasi berhasil**
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const Homepage()), // Ganti dengan halaman tujuan
-      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Error: $e')), // Menampilkan pesan error jika gagal
       );
     } finally {
       setState(() {
-        _isLoading = false;
+        _isLoading = false; // Sembunyikan indikator loading setelah selesai
       });
     }
   }
@@ -79,7 +94,7 @@ class _UserTabState extends State<UserTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('User Tab'),
+        title: const Text('Register'), // Judul halaman
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -94,9 +109,8 @@ class _UserTabState extends State<UserTab> {
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Email tidak boleh kosong';
+                    return 'Email tidak boleh kosong'; // Validasi input email
                   }
-                  
                   return null;
                 },
               ),
@@ -105,13 +119,13 @@ class _UserTabState extends State<UserTab> {
               TextFormField(
                 controller: _passwordController,
                 decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
+                obscureText: true, // Sembunyikan karakter password
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Password tidak boleh kosong';
+                    return 'Password tidak boleh kosong'; // Validasi input password
                   }
                   if (value.length < 6) {
-                    return 'Password harus lebih dari 6 karakter';
+                    return 'Password harus lebih dari 6 karakter'; // Syarat panjang password
                   }
                   return null;
                 },
@@ -122,22 +136,24 @@ class _UserTabState extends State<UserTab> {
               TextFormField(
                 controller: _confirmPasswordController,
                 decoration: const InputDecoration(labelText: 'Konfirmasi Password'),
-                obscureText: true,
+                obscureText: true, // Sembunyikan karakter password
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Konfirmasi password tidak boleh kosong';
+                    return 'Konfirmasi password tidak boleh kosong'; // Validasi konfirmasi password
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+             
+              const SizedBox(height: 24),
 
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator()) // Indikator loading
-                  : ElevatedButton(
-                      onPressed: _register,
-                      child: const Text('Simpan'),
-                    ),
+              // Tombol registrasi
+              ElevatedButton(
+                onPressed: _isLoading ? null : _register, // Matikan tombol jika sedang loading
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white) // Tampilkan loading indicator
+                    : const Text('Register'), // Tampilkan teks biasa jika tidak loading
+              ),
             ],
           ),
         ),

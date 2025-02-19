@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
-import 'package:ukk_2025/user/index.dart';  // Pastikan ini mengarah pada file yang tepat
+import 'package:ukk_2025/user/index.dart';
+ 
 
 class InsertUser extends StatefulWidget {
   const InsertUser({super.key});
@@ -55,12 +56,19 @@ class _InsertUserState extends State<InsertUser> {
       final response = await supabase.from('user').insert({
         'Username': username,
         'Password': password,
-      });
+      }).select().single();
 
-      if (response.error == null) {
+      if (response != null && response['user_id'] != null) {
         // Jika berhasil
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User berhasil ditambahkan!')),
+        );
+
+        // Arahkan ke halaman index setelah user berhasil disimpan
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => const UserTab()));
+          context,
+          MaterialPageRoute(builder: (context) => const UserTab()), // Ganti dengan halaman tujuan
+        );
       } else {
         // Jika ada error
         ScaffoldMessenger.of(context).showSnackBar(
@@ -99,7 +107,7 @@ class _InsertUserState extends State<InsertUser> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Tambah Pelanggan',
+        title: const Text('Tambah User',
             style: TextStyle(color: Colors.white)),
         backgroundColor: const Color.fromARGB(121, 255, 0, 128),
       ),
